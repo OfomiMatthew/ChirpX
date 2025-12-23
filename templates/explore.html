@@ -1,0 +1,131 @@
+{% extends "base.html" %} {% block title %}Explore - ChirpX{% endblock %} {%
+block content %}
+<div class="max-w-4xl mx-auto">
+  <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+    <i class="fas fa-compass mr-2"></i>Explore
+  </h2>
+
+  {% if chirps %} {% for chirp in chirps %}
+  <div
+    class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-4 hover:shadow-lg transition-shadow"
+  >
+    <div class="flex">
+      <div class="flex-shrink-0 mr-4">
+        {% if chirp['profile_picture'] %}
+        <img
+          src="{{ url_for('static', filename=chirp['profile_picture']) }}"
+          alt="{{ chirp['username'] }}"
+          class="w-12 h-12 rounded-full"
+        />
+        {% else %}
+        <div
+          class="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg"
+        >
+          {{ chirp['username'][0].upper() }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center mb-1">
+          <a
+            href="{{ url_for('profile', username=chirp['username']) }}"
+            class="font-bold text-gray-900 dark:text-white hover:underline"
+          >
+            {{ chirp['full_name'] or chirp['username'] }}
+          </a>
+          <span class="mx-1 text-gray-500 dark:text-gray-400"
+            >@{{ chirp['username'] }}</span
+          >
+          <span class="mx-1 text-gray-500 dark:text-gray-400">·</span>
+          <span class="text-gray-500 dark:text-gray-400 text-sm"
+            >{{ chirp['created_at'] }}</span
+          >
+        </div>
+        <div class="text-gray-900 dark:text-gray-100 mb-3">
+          <a
+            href="{{ url_for('view_chirp', chirp_id=chirp['id']) }}"
+            class="hover:text-primary-600 dark:hover:text-primary-400"
+          >
+            {{ chirp['content'] }}
+          </a>
+        </div>
+        <div class="flex items-center gap-6 text-gray-500 dark:text-gray-400">
+          <form
+            method="POST"
+            action="{{ url_for('like_chirp', chirp_id=chirp['id']) }}"
+            class="inline"
+          >
+            <button
+              type="submit"
+              class="flex items-center gap-2 hover:text-red-500 transition-colors {% if chirp['user_liked'] %}text-red-500{% endif %}"
+            >
+              <i class="fas fa-heart"></i>
+              <span class="text-sm">{{ chirp['like_count'] }}</span>
+            </button>
+          </form>
+          <a
+            href="{{ url_for('view_chirp', chirp_id=chirp['id']) }}"
+            class="flex items-center gap-2 hover:text-blue-500 transition-colors"
+          >
+            <i class="fas fa-comment"></i>
+            <span class="text-sm">{{ chirp['comment_count'] }}</span>
+          </a>
+          <form
+            method="POST"
+            action="{{ url_for('retweet_chirp', chirp_id=chirp['id']) }}"
+            class="inline"
+          >
+            <button
+              type="submit"
+              class="flex items-center gap-2 hover:text-green-500 transition-colors {% if chirp['user_retweeted'] %}text-green-500{% endif %}"
+            >
+              <i class="fas fa-retweet"></i>
+              <span class="text-sm">{{ chirp['retweet_count'] }}</span>
+            </button>
+          </form>
+          <form
+            method="POST"
+            action="{{ url_for('bookmark_chirp', chirp_id=chirp['id']) }}"
+            class="inline"
+          >
+            <button
+              type="submit"
+              class="flex items-center gap-2 hover:text-yellow-500 transition-colors {% if chirp['is_bookmarked'] %}text-yellow-500{% endif %}"
+              title="{% if chirp['is_bookmarked'] %}Remove bookmark{% else %}Bookmark{% endif %}"
+            >
+              <i class="fas fa-bookmark"></i>
+            </button>
+          </form>
+          {% if chirp['user_id'] == session.user_id %}
+          <form
+            method="POST"
+            action="{{ url_for('delete_chirp', chirp_id=chirp['id']) }}"
+            class="inline ml-auto"
+          >
+            <button
+              type="submit"
+              class="flex items-center gap-2 hover:text-red-500 transition-colors"
+              onclick="return confirm('Delete this chirp?')"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %} {% else %}
+  <div
+    class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-xl p-12 text-center"
+  >
+    <i
+      class="fas fa-info-circle text-blue-600 dark:text-blue-400 text-4xl mb-3"
+    ></i>
+    <p class="text-blue-900 dark:text-blue-100 text-lg">
+      No chirps yet. Be the first to post!
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

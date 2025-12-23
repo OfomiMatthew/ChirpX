@@ -1,0 +1,223 @@
+{% extends "base.html" %} {% block title %}{{ user['username'] }} - ChirpX{%
+endblock %} {% block content %}
+<!-- Profile Header -->
+<div
+  class="bg-gradient-to-br from-primary-600 to-purple-600 dark:from-primary-700 dark:to-purple-700 -mt-8 mb-8"
+>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+    <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+      <!-- Profile Picture -->
+      <div class="flex-shrink-0">
+        {% if user['profile_picture'] %}
+        <img
+          src="{{ url_for('static', filename=user['profile_picture']) }}"
+          alt="{{ user['username'] }}"
+          class="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 object-cover"
+        />
+        {% else %}
+        <div
+          class="w-32 h-32 rounded-full bg-white dark:bg-gray-800 border-4 border-white dark:border-gray-800 flex items-center justify-center"
+        >
+          <span class="text-5xl font-bold text-gray-900 dark:text-white"
+            >{{ user['username'][0].upper() }}</span
+          >
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Profile Info -->
+      <div class="flex-1 text-white">
+        <h1 class="text-3xl font-bold mb-1">
+          {{ user['full_name'] or user['username'] }}
+        </h1>
+        <p class="text-xl opacity-90 mb-3">@{{ user['username'] }}</p>
+
+        {% if user['bio'] %}
+        <p class="mb-3 text-lg opacity-95">{{ user['bio'] }}</p>
+        {% endif %}
+
+        <!-- Profile Metadata -->
+        <div class="flex flex-wrap gap-3 mb-4 text-sm opacity-90">
+          {% if user['location'] %}
+          <span class="flex items-center gap-1">
+            <i class="fas fa-map-marker-alt"></i>
+            {{ user['location'] }}
+          </span>
+          {% endif %} {% if user['website'] %}
+          <span class="flex items-center gap-1">
+            <i class="fas fa-link"></i>
+            {{ user['website'] }}
+          </span>
+          {% endif %}
+          <span class="flex items-center gap-1">
+            <i class="fas fa-calendar"></i>
+            Joined {{ user['created_at'][:10] }}
+          </span>
+        </div>
+
+        <!-- Following/Followers Stats -->
+        <div class="flex gap-6 mb-4 text-base">
+          <div>
+            <span class="font-bold">{{ following_count }}</span>
+            <span class="opacity-90">Following</span>
+          </div>
+          <div>
+            <span class="font-bold">{{ follower_count }}</span>
+            <span class="opacity-90">Followers</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-3">
+          {% if user['id'] == session.user_id %}
+          <a
+            href="{{ url_for('edit_profile') }}"
+            class="px-4 py-2 bg-white text-primary-600 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+          >
+            <i class="fas fa-edit mr-2"></i>Edit Profile
+          </a>
+          {% else %}
+          <form
+            method="POST"
+            action="{{ url_for('follow_user', user_id=user['id']) }}"
+            class="inline"
+          >
+            {% if is_following %}
+            <button
+              type="submit"
+              class="px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm text-white border border-white rounded-lg hover:bg-opacity-30 transition-colors"
+            >
+              <i class="fas fa-user-minus mr-2"></i>Unfollow
+            </button>
+            {% else %}
+            <button
+              type="submit"
+              class="px-4 py-2 bg-white text-primary-600 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+            >
+              <i class="fas fa-user-plus mr-2"></i>Follow
+            </button>
+            {% endif %}
+          </form>
+          <a
+            href="{{ url_for('new_message', username=user['username']) }}"
+            class="px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm text-white border border-white rounded-lg hover:bg-opacity-30 transition-colors"
+          >
+            <i class="fas fa-envelope mr-2"></i>Message
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chirps Section -->
+<div class="max-w-4xl mx-auto">
+  <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Chirps</h2>
+
+  {% if chirps %} {% for chirp in chirps %}
+  <div
+    class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-4 hover:shadow-lg transition-shadow"
+  >
+    <div class="flex">
+      <div class="flex-shrink-0 mr-4">
+        {% if chirp['profile_picture'] %}
+        <img
+          src="{{ url_for('static', filename=chirp['profile_picture']) }}"
+          alt="{{ chirp['username'] }}"
+          class="w-12 h-12 rounded-full"
+        />
+        {% else %}
+        <div
+          class="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg"
+        >
+          {{ chirp['username'][0].upper() }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center mb-1">
+          <span class="font-bold text-gray-900 dark:text-white"
+            >{{ chirp['full_name'] or chirp['username'] }}</span
+          >
+          <span class="mx-1 text-gray-500 dark:text-gray-400"
+            >@{{ chirp['username'] }}</span
+          >
+          <span class="mx-1 text-gray-500 dark:text-gray-400">·</span>
+          <span class="text-gray-500 dark:text-gray-400 text-sm"
+            >{{ chirp['created_at'] }}</span
+          >
+        </div>
+        <div class="text-gray-900 dark:text-gray-100 mb-3">
+          <a
+            href="{{ url_for('view_chirp', chirp_id=chirp['id']) }}"
+            class="hover:text-primary-600 dark:hover:text-primary-400"
+          >
+            {{ chirp['content'] }}
+          </a>
+        </div>
+        <div class="flex items-center gap-6 text-gray-500 dark:text-gray-400">
+          <form
+            method="POST"
+            action="{{ url_for('like_chirp', chirp_id=chirp['id']) }}"
+            class="inline"
+          >
+            <button
+              type="submit"
+              class="flex items-center gap-2 hover:text-red-500 transition-colors {% if chirp['user_liked'] %}text-red-500{% endif %}"
+            >
+              <i class="fas fa-heart"></i>
+              <span class="text-sm">{{ chirp['like_count'] }}</span>
+            </button>
+          </form>
+          <a
+            href="{{ url_for('view_chirp', chirp_id=chirp['id']) }}"
+            class="flex items-center gap-2 hover:text-blue-500 transition-colors"
+          >
+            <i class="fas fa-comment"></i>
+            <span class="text-sm">{{ chirp['comment_count'] }}</span>
+          </a>
+          <form
+            method="POST"
+            action="{{ url_for('retweet_chirp', chirp_id=chirp['id']) }}"
+            class="inline"
+          >
+            <button
+              type="submit"
+              class="flex items-center gap-2 hover:text-green-500 transition-colors {% if chirp['user_retweeted'] %}text-green-500{% endif %}"
+            >
+              <i class="fas fa-retweet"></i>
+              <span class="text-sm">{{ chirp['retweet_count'] }}</span>
+            </button>
+          </form>
+          {% if chirp['user_id'] == session.user_id %}
+          <form
+            method="POST"
+            action="{{ url_for('delete_chirp', chirp_id=chirp['id']) }}"
+            class="inline ml-auto"
+          >
+            <button
+              type="submit"
+              class="flex items-center gap-2 hover:text-red-500 transition-colors"
+              onclick="return confirm('Delete this chirp?')"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %} {% else %}
+  <div
+    class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-xl p-12 text-center"
+  >
+    <i
+      class="fas fa-info-circle text-blue-600 dark:text-blue-400 text-4xl mb-3"
+    ></i>
+    <p class="text-blue-900 dark:text-blue-100 text-lg">No chirps yet.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

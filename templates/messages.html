@@ -1,0 +1,89 @@
+{% extends "base.html" %} {% block title %}Messages - ChirpX{% endblock %} {%
+block content %}
+<div class="max-w-4xl mx-auto">
+  <div
+    class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6"
+  >
+    <div class="flex items-center justify-between mb-6">
+      <h1
+        class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2"
+      >
+        <i class="fas fa-envelope"></i>
+        Messages {% if unread_total > 0 %}
+        <span
+          class="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full"
+          >{{ unread_total }}</span
+        >
+        {% endif %}
+      </h1>
+    </div>
+
+    {% if conversations %}
+    <div class="space-y-2">
+      {% for conv in conversations %}
+      <a
+        href="{{ url_for('conversation', username=conv['username']) }}"
+        class="block"
+      >
+        <div
+          class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+        >
+          <div class="flex items-center">
+            <div class="flex-shrink-0 mr-4">
+              {% if conv['profile_picture'] %}
+              <img
+                src="{{ url_for('static', filename=conv['profile_picture']) }}"
+                alt="{{ conv['username'] }}"
+                class="w-12 h-12 rounded-full"
+              />
+              {% else %}
+              <div
+                class="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg"
+              >
+                {{ conv['username'][0].upper() }}
+              </div>
+              {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center mb-1">
+                <span class="font-bold text-gray-900 dark:text-white"
+                  >{{ conv['full_name'] or conv['username'] }}</span
+                >
+                <span class="ml-2 text-gray-500 dark:text-gray-400 text-sm"
+                  >@{{ conv['username'] }}</span
+                >
+                {% if conv['unread_count'] > 0 %}
+                <span
+                  class="ml-2 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full"
+                  >{{ conv['unread_count'] }}</span
+                >
+                {% endif %}
+              </div>
+              <p class="text-gray-600 dark:text-gray-300 text-sm truncate">
+                {{ conv['last_message'][:100] }}{% if
+                conv['last_message']|length > 100 %}...{% endif %}
+              </p>
+            </div>
+            <div class="flex-shrink-0 ml-4">
+              <i class="fas fa-chevron-right text-gray-400"></i>
+            </div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div
+      class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-xl p-12 text-center"
+    >
+      <i
+        class="fas fa-inbox text-blue-600 dark:text-blue-400 text-5xl mb-4"
+      ></i>
+      <p class="text-blue-900 dark:text-blue-100 text-lg">
+        No messages yet. Start a conversation by visiting a user's profile!
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,956 @@
+{% extends "base.html" %} {% block title %}Home - ChirpX{% endblock %} {% block
+content %}
+<div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Main Content (Left & Center) -->
+  <div class="lg:col-span-2">
+    <!-- Compose Chirp -->
+    <div
+      class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-6"
+    >
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        What's happening?
+      </h2>
+      <form
+        method="POST"
+        action="{{ url_for('post_chirp') }}"
+        id="chirp-form"
+        enctype="multipart/form-data"
+      >
+        <div class="mb-3">
+          <textarea
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+            id="chirp-content"
+            name="content"
+            placeholder="Share your thoughts..."
+            rows="3"
+            maxlength="280"
+            required
+          ></textarea>
+          <div
+            id="char-counter"
+            class="text-right text-sm text-gray-500 dark:text-gray-400 mt-1"
+          >
+            0/280
+          </div>
+        </div>
+
+        <!-- Media Preview (Multiple Files) -->
+        <div id="media-preview-container" class="hidden mb-4">
+          <div id="media-previews" class="grid grid-cols-2 gap-2"></div>
+        </div>
+
+        <!-- AI Features Section -->
+        <div class="ai-features-section hidden mb-4">
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="px-4 py-2 bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors text-sm font-medium"
+              id="ai-hashtags-btn"
+              title="Get AI hashtag suggestions"
+            >
+              <i class="fas fa-hashtag mr-2"></i>Suggest Hashtags
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 bg-purple-50 dark:bg-purple-900 text-purple-600 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-800 transition-colors text-sm font-medium"
+              id="ai-enhance-btn"
+              title="Enhance your chirp with AI"
+            >
+              <i class="fas fa-magic mr-2"></i>Enhance Content
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 bg-pink-50 dark:bg-pink-900 text-pink-600 dark:text-pink-300 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-800 transition-colors text-sm font-medium"
+              id="ai-image-btn"
+              title="Generate image with AI"
+            >
+              <i class="fas fa-image mr-2"></i>Generate Image
+            </button>
+          </div>
+
+          <!-- AI Suggestions Display -->
+          <div
+            id="ai-suggestions"
+            class="hidden mt-3 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4"
+          >
+            <button
+              class="float-right text-blue-600 dark:text-blue-300"
+              onclick="document.getElementById('ai-suggestions').classList.add('hidden')"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+            <div
+              id="ai-suggestions-content"
+              class="text-blue-900 dark:text-blue-100"
+            ></div>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center">
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+              id="toggle-ai-features"
+            >
+              <i class="fas fa-brain mr-2"></i>AI Features
+            </button>
+            <label
+              for="media-input"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer"
+            >
+              <i class="fas fa-image mr-2"></i>Media (Max 4)
+            </label>
+            <input
+              type="file"
+              id="media-input"
+              name="media"
+              accept="image/*,video/*"
+              class="hidden"
+              onchange="previewMedia(this)"
+              multiple
+            />
+            <span
+              id="file-counter"
+              class="text-xs text-gray-500 dark:text-gray-400 ml-2"
+            ></span>
+          </div>
+          <button
+            class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium shadow-sm transition-colors"
+            type="submit"
+          >
+            <i class="fas fa-paper-plane mr-2"></i>Chirp
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Trending Topics Section -->
+    <div
+      class="bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-700 rounded-xl shadow-md p-6 mb-6 text-white"
+      id="trending-topics"
+    >
+      <h3 class="text-lg font-semibold mb-3">
+        <i class="fas fa-fire mr-2"></i>Trending Topics (AI)
+      </h3>
+      <div id="trending-content">
+        <button
+          class="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
+          onclick="loadTrendingTopics()"
+        >
+          <i class="fas fa-sync mr-2"></i>Load Trending
+        </button>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+      Your Timeline
+    </h2>
+
+    {% if chirps %} {% for chirp in chirps %}
+    <div
+      class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-4 hover:shadow-lg transition-shadow"
+    >
+      <div class="flex">
+        <div class="flex-shrink-0 mr-4">
+          {% if chirp['profile_picture'] %}
+          <img
+            src="{{ url_for('static', filename=chirp['profile_picture']) }}"
+            alt="{{ chirp['username'] }}"
+            class="w-12 h-12 rounded-full"
+          />
+          {% else %}
+          <div
+            class="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg"
+          >
+            {{ chirp['username'][0].upper() }}
+          </div>
+          {% endif %}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center mb-1">
+            <a
+              href="{{ url_for('profile', username=chirp['username']) }}"
+              class="font-bold text-gray-900 dark:text-white hover:underline"
+            >
+              {{ chirp['full_name'] or chirp['username'] }}
+            </a>
+            <span class="mx-1 text-gray-500 dark:text-gray-400"
+              >@{{ chirp['username'] }}</span
+            >
+            <span class="mx-1 text-gray-500 dark:text-gray-400">·</span>
+            <span class="text-gray-500 dark:text-gray-400 text-sm"
+              >{{ chirp['created_at'] }}</span
+            >
+          </div>
+          <div class="text-gray-900 dark:text-gray-100 mb-3">
+            <a
+              href="{{ url_for('view_chirp', chirp_id=chirp['id']) }}"
+              class="hover:text-primary-600 dark:hover:text-primary-400"
+            >
+              {{ chirp['content'] }}
+            </a>
+          </div>
+
+          <!-- Media Display (Collage Layout) -->
+          {% if chirp['media'] and chirp['media']|length > 0 %}
+          <div
+            class="mb-3 rounded-xl overflow-hidden border border-gray-300 dark:border-gray-600"
+          >
+            {% if chirp['media']|length == 1 %}
+            <!-- Single Image: Full Width -->
+            <div class="relative w-full">
+              {% if chirp['media'][0]['media_type'] == 'image' %}
+              <img
+                src="{{ url_for('static', filename=chirp['media'][0]['media_url']) }}"
+                alt="Chirp media"
+                class="w-full max-h-[500px] object-cover cursor-pointer hover:opacity-95 transition"
+                onclick="openMediaModal('{{ url_for('static', filename=chirp['media'][0]['media_url']) }}', 'image')"
+              />
+              {% elif chirp['media'][0]['media_type'] == 'video' %}
+              <video controls class="w-full max-h-[500px]">
+                <source
+                  src="{{ url_for('static', filename=chirp['media'][0]['media_url']) }}"
+                  type="video/mp4"
+                />
+              </video>
+              {% endif %}
+            </div>
+
+            {% elif chirp['media']|length == 2 %}
+            <!-- Two Images: Side by Side -->
+            <div class="grid grid-cols-2 gap-0.5">
+              {% for media in chirp['media'] %}
+              <div class="relative">
+                {% if media['media_type'] == 'image' %}
+                <img
+                  src="{{ url_for('static', filename=media['media_url']) }}"
+                  alt="Chirp media"
+                  class="w-full h-[280px] object-cover cursor-pointer hover:opacity-95 transition"
+                  onclick="openMediaModal('{{ url_for('static', filename=media['media_url']) }}', 'image')"
+                />
+                {% elif media['media_type'] == 'video' %}
+                <video controls class="w-full h-[280px] object-cover">
+                  <source
+                    src="{{ url_for('static', filename=media['media_url']) }}"
+                    type="video/mp4"
+                  />
+                </video>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+
+            {% elif chirp['media']|length == 3 %}
+            <!-- Three Images: Large Left + Two Stacked Right -->
+            <div class="grid grid-cols-2 gap-0.5">
+              <div class="row-span-2 relative">
+                {% if chirp['media'][0]['media_type'] == 'image' %}
+                <img
+                  src="{{ url_for('static', filename=chirp['media'][0]['media_url']) }}"
+                  alt="Chirp media"
+                  class="w-full h-full object-cover cursor-pointer hover:opacity-95 transition"
+                  onclick="openMediaModal('{{ url_for('static', filename=chirp['media'][0]['media_url']) }}', 'image')"
+                />
+                {% elif chirp['media'][0]['media_type'] == 'video' %}
+                <video controls class="w-full h-full object-cover">
+                  <source
+                    src="{{ url_for('static', filename=chirp['media'][0]['media_url']) }}"
+                    type="video/mp4"
+                  />
+                </video>
+                {% endif %}
+              </div>
+              {% for media in chirp['media'][1:] %}
+              <div class="relative">
+                {% if media['media_type'] == 'image' %}
+                <img
+                  src="{{ url_for('static', filename=media['media_url']) }}"
+                  alt="Chirp media"
+                  class="w-full h-[190px] object-cover cursor-pointer hover:opacity-95 transition"
+                  onclick="openMediaModal('{{ url_for('static', filename=media['media_url']) }}', 'image')"
+                />
+                {% elif media['media_type'] == 'video' %}
+                <video controls class="w-full h-[190px] object-cover">
+                  <source
+                    src="{{ url_for('static', filename=media['media_url']) }}"
+                    type="video/mp4"
+                  />
+                </video>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+
+            {% elif chirp['media']|length == 4 %}
+            <!-- Four Images: 2x2 Grid -->
+            <div class="grid grid-cols-2 gap-0.5">
+              {% for media in chirp['media'] %}
+              <div class="relative">
+                {% if media['media_type'] == 'image' %}
+                <img
+                  src="{{ url_for('static', filename=media['media_url']) }}"
+                  alt="Chirp media"
+                  class="w-full h-[190px] object-cover cursor-pointer hover:opacity-95 transition"
+                  onclick="openMediaModal('{{ url_for('static', filename=media['media_url']) }}', 'image')"
+                />
+                {% elif media['media_type'] == 'video' %}
+                <video controls class="w-full h-[190px] object-cover">
+                  <source
+                    src="{{ url_for('static', filename=media['media_url']) }}"
+                    type="video/mp4"
+                  />
+                </video>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <div class="flex items-center gap-6 text-gray-500 dark:text-gray-400">
+            <form
+              method="POST"
+              action="{{ url_for('like_chirp', chirp_id=chirp['id']) }}"
+              class="inline"
+            >
+              <button
+                type="submit"
+                class="flex items-center gap-2 hover:text-red-500 transition-colors {% if chirp['user_liked'] %}text-red-500{% endif %}"
+              >
+                <i class="fas fa-heart"></i>
+                <span class="text-sm">{{ chirp['like_count'] }}</span>
+              </button>
+            </form>
+            <a
+              href="{{ url_for('view_chirp', chirp_id=chirp['id']) }}"
+              class="flex items-center gap-2 hover:text-blue-500 transition-colors"
+            >
+              <i class="fas fa-comment"></i>
+              <span class="text-sm">{{ chirp['comment_count'] }}</span>
+            </a>
+            <button
+              type="button"
+              class="flex items-center gap-2 hover:text-purple-500 transition-colors ai-reply-btn"
+              data-chirp-id="{{ chirp['id'] }}"
+              title="AI Reply Suggestions"
+            >
+              <i class="fas fa-brain"></i>
+            </button>
+            <form
+              method="POST"
+              action="{{ url_for('retweet_chirp', chirp_id=chirp['id']) }}"
+              class="inline"
+            >
+              <button
+                type="submit"
+                class="flex items-center gap-2 hover:text-green-500 transition-colors {% if chirp['user_retweeted'] %}text-green-500{% endif %}"
+              >
+                <i class="fas fa-retweet"></i>
+                <span class="text-sm">{{ chirp['retweet_count'] }}</span>
+              </button>
+            </form>
+            <form
+              method="POST"
+              action="{{ url_for('bookmark_chirp', chirp_id=chirp['id']) }}"
+              class="inline"
+            >
+              <button
+                type="submit"
+                class="flex items-center gap-2 hover:text-yellow-500 transition-colors {% if chirp['is_bookmarked'] %}text-yellow-500{% endif %}"
+                title="{% if chirp['is_bookmarked'] %}Remove bookmark{% else %}Bookmark{% endif %}"
+              >
+                <i class="fas fa-bookmark"></i>
+              </button>
+            </form>
+            {% if chirp['user_id'] == session.user_id %}
+            <form
+              method="POST"
+              action="{{ url_for('delete_chirp', chirp_id=chirp['id']) }}"
+              class="inline ml-auto"
+            >
+              <button
+                type="submit"
+                class="flex items-center gap-2 hover:text-red-500 transition-colors"
+                onclick="return confirm('Delete this chirp?')"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %} {% else %}
+    <div
+      class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-xl p-8 text-center"
+    >
+      <i
+        class="fas fa-info-circle text-blue-600 dark:text-blue-400 text-3xl mb-3"
+      ></i>
+      <p class="text-blue-900 dark:text-blue-100">
+        No chirps yet. Follow some users or check out the
+        <a href="{{ url_for('explore') }}" class="font-bold underline"
+          >Explore</a
+        >
+        page!
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Who to Follow Sidebar (Right) -->
+  <div class="lg:col-span-1">
+    <div
+      class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6 sticky top-6"
+    >
+      <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
+        <i
+          class="fas fa-user-plus mr-2 text-primary-600 dark:text-primary-400"
+        ></i
+        >Who to Follow
+      </h3>
+      <div id="who-to-follow-list">
+        <div class="text-center py-4">
+          <i class="fas fa-spinner fa-pulse text-2xl text-gray-400"></i>
+        </div>
+      </div>
+      <button
+        onclick="loadWhoToFollow()"
+        class="w-full mt-4 px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+      >
+        <i class="fas fa-sync mr-2"></i>Refresh Suggestions
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Reply Modal -->
+<div class="fixed inset-0 z-50 overflow-y-auto hidden" id="ai-reply-modal">
+  <div class="flex items-center justify-center min-h-screen px-4">
+    <div
+      class="fixed inset-0 bg-black opacity-50"
+      onclick="closeAIReplyModal()"
+    ></div>
+    <div
+      class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full"
+    >
+      <div
+        class="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-700 p-6 rounded-t-xl"
+      >
+        <h3 class="text-xl font-bold text-white">
+          <i class="fas fa-brain mr-2"></i>AI Reply Suggestions
+        </h3>
+        <button
+          class="absolute top-4 right-4 text-white hover:text-gray-200"
+          onclick="closeAIReplyModal()"
+        >
+          <i class="fas fa-times text-2xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <div id="ai-reply-suggestions-content">
+          <div class="text-center text-gray-600 dark:text-gray-400">
+            <i class="fas fa-spinner fa-pulse text-3xl mb-3"></i>
+            <p>Generating suggestions...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  // Load Who to Follow on page load
+  document.addEventListener("DOMContentLoaded", function () {
+    loadWhoToFollow();
+  });
+
+  // Media Preview Function (Multiple Files)
+  let selectedFiles = [];
+
+  function previewMedia(input) {
+    const previewContainer = document.getElementById("media-previews");
+    const maxFiles = 4;
+
+    if (input.files && input.files.length > 0) {
+      // Limit to 4 files
+      const filesToAdd = Array.from(input.files).slice(
+        0,
+        maxFiles - selectedFiles.length
+      );
+
+      if (input.files.length > maxFiles - selectedFiles.length) {
+        alert(
+          `You can only upload up to ${maxFiles} files. Only the first ${filesToAdd.length} will be added.`
+        );
+      }
+
+      selectedFiles = selectedFiles.concat(filesToAdd);
+
+      // Clear and rebuild preview
+      previewContainer.innerHTML = "";
+
+      selectedFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const previewDiv = document.createElement("div");
+          previewDiv.className = "relative group";
+
+          const isVideo = file.type.startsWith("video/");
+          const mediaElement = isVideo
+            ? `<video src="${e.target.result}" class="w-full h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600"></video>`
+            : `<img src="${e.target.result}" alt="Preview ${
+                index + 1
+              }" class="w-full h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600" />`;
+
+          previewDiv.innerHTML = `
+            ${mediaElement}
+            <button type="button" onclick="removeMedia(${index})" 
+              class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <i class="fas fa-times text-xs"></i>
+            </button>
+            <div class="absolute bottom-1 left-1 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+              ${
+                file.name.length > 15
+                  ? file.name.substring(0, 12) + "..."
+                  : file.name
+              }
+            </div>
+          `;
+
+          previewContainer.appendChild(previewDiv);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Update file counter
+      updateFileCounter();
+    }
+  }
+
+  function removeMedia(index) {
+    selectedFiles.splice(index, 1);
+
+    // Rebuild DataTransfer object
+    const dt = new DataTransfer();
+    selectedFiles.forEach((file) => dt.items.add(file));
+    document.getElementById("media-input").files = dt.files;
+
+    // Rebuild preview
+    const input = document.getElementById("media-input");
+    previewMedia({ files: selectedFiles });
+
+    updateFileCounter();
+  }
+
+  function updateFileCounter() {
+    const counter = document.getElementById("file-counter");
+    if (counter) {
+      counter.textContent =
+        selectedFiles.length > 0 ? `${selectedFiles.length}/4 files` : "";
+    }
+  }
+
+  // Who to Follow Function
+  async function loadWhoToFollow() {
+    const listDiv = document.getElementById("who-to-follow-list");
+    listDiv.innerHTML =
+      '<div class="text-center py-4"><i class="fas fa-spinner fa-pulse text-2xl text-gray-400"></i></div>';
+
+    try {
+      const response = await fetch("/api/who-to-follow");
+      const users = await response.json();
+
+      if (users.length > 0) {
+        let html = '<div class="space-y-4">';
+        users.forEach((user) => {
+          html += `
+                        <div class="flex items-start gap-3 pb-4 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                            <a href="/profile/${
+                              user.username
+                            }" class="flex-shrink-0">
+                                ${
+                                  user.profile_picture
+                                    ? `<img src="/static/${user.profile_picture}" alt="${user.username}" class="w-12 h-12 rounded-full object-cover">`
+                                    : `<div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white font-bold">${user.username[0].toUpperCase()}</div>`
+                                }
+                            </a>
+                            <div class="flex-1 min-w-0">
+                                <a href="/profile/${
+                                  user.username
+                                }" class="font-semibold text-gray-900 dark:text-white hover:underline block truncate">
+                                    ${user.full_name || user.username}
+                                </a>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 truncate">@${
+                                  user.username
+                                }</p>
+                                ${
+                                  user.bio
+                                    ? `<p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">${user.bio}</p>`
+                                    : ""
+                                }
+                                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                    <i class="fas fa-users"></i> ${
+                                      user.follower_count
+                                    } followers
+                                </p>
+                            </div>
+                            <form method="POST" action="/follow/${
+                              user.username
+                            }" class="flex-shrink-0">
+                                <button type="submit" class="px-3 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded-full text-sm font-medium transition-colors">
+                                    Follow
+                                </button>
+                            </form>
+                        </div>
+                    `;
+        });
+        html += "</div>";
+        listDiv.innerHTML = html;
+      } else {
+        listDiv.innerHTML =
+          '<p class="text-center text-gray-500 dark:text-gray-400 py-4">No suggestions available</p>';
+      }
+    } catch (error) {
+      listDiv.innerHTML =
+        '<p class="text-center text-red-600 dark:text-red-400 py-4">Error loading suggestions</p>';
+    }
+  }
+
+  // Character counter
+  document
+    .getElementById("chirp-content")
+    .addEventListener("input", function () {
+      const counter = document.getElementById("char-counter");
+      const length = this.value.length;
+      counter.textContent = length + "/280";
+      if (length > 250) {
+        counter.className =
+          length > 280
+            ? "text-right text-sm text-red-600 dark:text-red-400 mt-1 font-bold"
+            : "text-right text-sm text-yellow-600 dark:text-yellow-400 mt-1";
+      } else {
+        counter.className =
+          "text-right text-sm text-gray-500 dark:text-gray-400 mt-1";
+      }
+    });
+
+  // Toggle AI Features
+  document
+    .getElementById("toggle-ai-features")
+    .addEventListener("click", function () {
+      const aiSection = document.querySelector(".ai-features-section");
+      aiSection.classList.toggle("hidden");
+    });
+
+  // AI Image Generation - Add to media preview
+  document
+    .getElementById("ai-image-btn")
+    .addEventListener("click", async function () {
+      const prompt = window.prompt(
+        "Describe the image you want to generate (AI will create ASCII art):"
+      );
+      if (!prompt) return;
+
+      const originalHtml = this.innerHTML;
+      this.innerHTML =
+        '<i class="fas fa-spinner fa-pulse mr-2"></i>Generating...';
+      this.disabled = true;
+
+      try {
+        const response = await fetch("/ai/generate-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Check if we can add more files
+          if (selectedFiles.length >= 4) {
+            alert(
+              "You already have 4 media files. Remove one to add the AI-generated image."
+            );
+            return;
+          }
+
+          // Fetch the generated image and add it to media preview
+          const imageUrl = `/static/${data.image_path}`;
+
+          try {
+            const imageResponse = await fetch(imageUrl);
+            const imageBlob = await imageResponse.blob();
+            const imageFile = new File(
+              [imageBlob],
+              `ai_generated_${Date.now()}.png`,
+              {
+                type: "image/png",
+              }
+            );
+
+            // Add to selectedFiles array
+            selectedFiles.push(imageFile);
+
+            // Update the file input
+            const dt = new DataTransfer();
+            selectedFiles.forEach((file) => dt.items.add(file));
+            document.getElementById("media-input").files = dt.files;
+
+            // Rebuild preview
+            previewMedia({ files: selectedFiles });
+
+            // Show success message
+            alert("🎨 AI image generated and added to your media!");
+          } catch (fetchError) {
+            alert(
+              "Image generated but failed to add to preview. Error: " +
+                fetchError.message
+            );
+          }
+        } else {
+          alert(
+            data.error || "Failed to generate ASCII art. Please try again."
+          );
+        }
+      } catch (error) {
+        alert("Error: " + error.message);
+      } finally {
+        this.innerHTML = originalHtml;
+        this.disabled = false;
+      }
+    });
+
+  // AI Hashtag Suggestions
+  document
+    .getElementById("ai-hashtags-btn")
+    .addEventListener("click", async function () {
+      const content = document.getElementById("chirp-content").value;
+      if (!content) {
+        alert("Please write some content first!");
+        return;
+      }
+
+      const originalHtml = this.innerHTML;
+      this.innerHTML = '<i class="fas fa-spinner fa-pulse mr-2"></i>Loading...';
+      this.disabled = true;
+
+      try {
+        const response = await fetch("/ai/hashtag-suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: content }),
+        });
+
+        const data = await response.json();
+
+        if (data.hashtags && data.hashtags.length > 0) {
+          const suggestionsDiv = document.getElementById("ai-suggestions");
+          const contentDiv = document.getElementById("ai-suggestions-content");
+
+          let html =
+            '<strong class="text-blue-900 dark:text-blue-100">Suggested Hashtags:</strong><br>';
+          html += '<div class="flex flex-wrap gap-2 mt-2">';
+          data.hashtags.forEach((tag) => {
+            html += `<span class="px-3 py-1 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded-full cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors" onclick="addHashtag('${tag}')">#${tag}</span>`;
+          });
+          html += "</div>";
+
+          contentDiv.innerHTML = html;
+          suggestionsDiv.classList.remove("hidden");
+        }
+      } catch (error) {
+        alert("Error getting hashtag suggestions: " + error.message);
+      } finally {
+        this.innerHTML = originalHtml;
+        this.disabled = false;
+      }
+    });
+
+  // AI Content Enhancement
+  document
+    .getElementById("ai-enhance-btn")
+    .addEventListener("click", async function () {
+      const content = document.getElementById("chirp-content").value;
+      if (!content) {
+        alert("Please write some content first!");
+        return;
+      }
+
+      const originalHtml = this.innerHTML;
+      this.innerHTML = '<i class="fas fa-spinner fa-pulse mr-2"></i>Loading...';
+      this.disabled = true;
+
+      try {
+        const response = await fetch("/ai/enhance-content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: content }),
+        });
+
+        const data = await response.json();
+
+        if (data.improved_content) {
+          const suggestionsDiv = document.getElementById("ai-suggestions");
+          const contentDiv = document.getElementById("ai-suggestions-content");
+
+          let html =
+            '<strong class="text-blue-900 dark:text-blue-100">Enhanced Version:</strong><br>';
+          html += `<div class="bg-white dark:bg-gray-700 rounded-lg p-4 mt-2 border border-blue-200 dark:border-blue-700 text-gray-900 dark:text-gray-100">${data.improved_content}</div>`;
+          html +=
+            '<button class="mt-3 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors" onclick="useEnhancedContent(`' +
+            data.improved_content.replace(/`/g, "\\`") +
+            '`)">Use This Version</button>';
+
+          if (data.suggestions && data.suggestions.length > 0) {
+            html +=
+              '<br><strong class="mt-3 inline-block text-blue-900 dark:text-blue-100">Tips:</strong><ul class="list-disc list-inside text-blue-800 dark:text-blue-200">';
+            data.suggestions.forEach((tip) => {
+              html += `<li>${tip}</li>`;
+            });
+            html += "</ul>";
+          }
+
+          contentDiv.innerHTML = html;
+          suggestionsDiv.classList.remove("hidden");
+        }
+      } catch (error) {
+        alert("Error enhancing content: " + error.message);
+      } finally {
+        this.innerHTML = originalHtml;
+        this.disabled = false;
+      }
+    });
+
+  function addHashtag(tag) {
+    const textarea = document.getElementById("chirp-content");
+    const current = textarea.value.trim();
+    textarea.value = current + (current ? " " : "") + "#" + tag;
+    textarea.dispatchEvent(new Event("input"));
+  }
+
+  function useEnhancedContent(content) {
+    document.getElementById("chirp-content").value = content;
+    document.getElementById("chirp-content").dispatchEvent(new Event("input"));
+    document.getElementById("ai-suggestions").classList.add("hidden");
+  }
+
+  // AI Reply Suggestions
+  document.querySelectorAll(".ai-reply-btn").forEach((btn) => {
+    btn.addEventListener("click", async function () {
+      const chirpId = this.dataset.chirpId;
+      const modal = document.getElementById("ai-reply-modal");
+      modal.classList.remove("hidden");
+
+      try {
+        const response = await fetch(`/ai/reply-suggestions/${chirpId}`);
+        const data = await response.json();
+
+        const contentDiv = document.getElementById(
+          "ai-reply-suggestions-content"
+        );
+
+        if (data.suggestions && data.suggestions.length > 0) {
+          let html = '<div class="space-y-3">';
+          data.suggestions.forEach((suggestion, index) => {
+            html += `
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+                                 onclick="useReplySuggestion(${chirpId}, '${suggestion.replace(
+              /'/g,
+              "\\'"
+            )}')">
+                                <p class="font-semibold text-gray-900 dark:text-white mb-2">Suggestion ${
+                                  index + 1
+                                }:</p>
+                                <p class="text-gray-700 dark:text-gray-300">${suggestion}</p>
+                            </div>
+                        `;
+          });
+          html += "</div>";
+          contentDiv.innerHTML = html;
+        } else {
+          contentDiv.innerHTML =
+            '<p class="text-center text-gray-600 dark:text-gray-400">No suggestions available</p>';
+        }
+      } catch (error) {
+        document.getElementById(
+          "ai-reply-suggestions-content"
+        ).innerHTML = `<p class="text-center text-red-600 dark:text-red-400">Error: ${error.message}</p>`;
+      }
+    });
+  });
+
+  function closeAIReplyModal() {
+    document.getElementById("ai-reply-modal").classList.add("hidden");
+  }
+
+  function useReplySuggestion(chirpId, suggestion) {
+    window.location.href = `/chirp/${chirpId}?reply=${encodeURIComponent(
+      suggestion
+    )}`;
+  }
+
+  // Load Trending Topics
+  async function loadTrendingTopics() {
+    const contentDiv = document.getElementById("trending-content");
+    contentDiv.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Loading...';
+
+    try {
+      const response = await fetch("/ai/trending-topics");
+      const data = await response.json();
+
+      if (data.topics && data.topics.length > 0) {
+        let html = '<div class="flex flex-wrap gap-2">';
+        data.topics.forEach((topic, index) => {
+          const score = Math.round(topic.relevance * 100);
+          const size = 1 + 0.2 * (5 - index);
+          html += `<span class="px-3 py-1 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg text-white font-medium" style="font-size: ${size}rem;">
+                                ${topic.topic} <span class="opacity-75 text-xs">${score}%</span>
+                             </span>`;
+        });
+        html += "</div>";
+        contentDiv.innerHTML = html;
+      } else {
+        contentDiv.innerHTML =
+          '<p class="opacity-80">No trending topics yet</p>';
+      }
+    } catch (error) {
+      contentDiv.innerHTML = `<p class="opacity-80">Error loading topics</p>`;
+    }
+  }
+
+  // Media Modal Function
+  function openMediaModal(src, type) {
+    const modal = document.createElement("div");
+    modal.className =
+      "fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4";
+    modal.onclick = function () {
+      this.remove();
+    };
+
+    const content =
+      type === "video"
+        ? `<video controls autoplay class="max-w-full max-h-full rounded-lg" onclick="event.stopPropagation()">
+           <source src="${src}" type="video/mp4">
+         </video>`
+        : `<img src="${src}" alt="Full size" class="max-w-full max-h-full rounded-lg" onclick="event.stopPropagation()">`;
+
+    modal.innerHTML = `
+      <div class="relative">
+        ${content}
+        <button onclick="this.closest('.fixed').remove()" 
+          class="absolute top-4 right-4 bg-white text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-200 transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+</script>
+{% endblock %}
