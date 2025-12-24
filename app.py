@@ -52,6 +52,29 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Initialize database on startup if it doesn't exist
+def ensure_database_exists():
+    """Ensure database is initialized on first run"""
+    import os
+    if not os.path.exists('chirpx.db'):
+        print("Database not found. Initializing...")
+        init_db()
+        print("Database initialized successfully!")
+    else:
+        # Check if tables exist
+        try:
+            conn = get_db_connection()
+            conn.execute('SELECT 1 FROM users LIMIT 1')
+            conn.close()
+        except sqlite3.OperationalError:
+            # Tables don't exist, initialize
+            print("Database exists but tables not found. Initializing...")
+            init_db()
+            print("Database initialized successfully!")
+
+# Ensure database exists when app starts
+ensure_database_exists()
+
 # Login required decorator
 def login_required(f):
     @wraps(f)
