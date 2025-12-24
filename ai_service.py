@@ -8,10 +8,12 @@ from groq import Groq
 from typing import Dict, List, Optional
 import json
 import re
+import requests
+import time
 
 class AIService:
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize Groq AI client"""
+        """Initialize Groq AI client for text-based AI features"""
         self.api_key = api_key or os.getenv('GROQ_API_KEY')
         if not self.api_key:
             raise ValueError("GROQ_API_KEY not found. Please set it in your environment or .env file")
@@ -346,92 +348,45 @@ Relevance should be between 0 and 1."""
         
         return []
     
-    def generate_image_with_groq(self, prompt: str) -> Dict:
+    def generate_image_with_pollinations(self, prompt: str) -> Dict:
         """
-        Generate an image using Groq API to create ASCII art and render it as an image
+        Generate an image using Pollinations.ai (completely free, no API key needed)
         Returns: {
             'success': bool,
             'image_path': str,
             'enhanced_prompt': str,
-            'ascii_art': str,
             'error': str (if failed)
         }
         """
         try:
-            from PIL import Image, ImageDraw, ImageFont
+            # Use Groq to enhance the prompt for better image generation
+            enhanced_prompt = self._enhance_image_prompt(prompt)
             
-            # Use Groq to create ASCII art
-            messages = [
-                {"role": "system", "content": "You are a creative AI artist that generates detailed ASCII art. Create beautiful, detailed ASCII art based on the user's description. Use standard ASCII characters to create recognizable images."},
-                {"role": "user", "content": f"Create detailed ASCII art for: {prompt}\n\nMake it visually appealing and recognizable. Use at least 15-20 lines to make it detailed."}
-            ]
+            # Pollinations.ai - completely free image generation
+            # URL format: https://image.pollinations.ai/prompt/{prompt}
+            import urllib.parse
+            encoded_prompt = urllib.parse.quote(enhanced_prompt)
+            pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
             
-            ascii_art = self._call_groq(messages, temperature=0.9, max_tokens=1000)
+            # Download the image
+            timestamp = int(time.time())
+            img_filename = f"ai_generated_{timestamp}.png"
+            img_filepath = os.path.join('static', 'uploads', img_filename)
+            os.makedirs(os.path.dirname(img_filepath), exist_ok=True)
             
-            if ascii_art:
-                import time
-                timestamp = int(time.time())
-                
-                # Save ASCII art as text file
-                txt_filename = f"ascii_art_{timestamp}.txt"
-                txt_filepath = os.path.join('static', 'uploads', txt_filename)
-                os.makedirs(os.path.dirname(txt_filepath), exist_ok=True)
-                
-                with open(txt_filepath, 'w', encoding='utf-8') as f:
-                    f.write(ascii_art)
-                
-                # Render ASCII art as an image
-                img_filename = f"ai_generated_{timestamp}.png"
-                img_filepath = os.path.join('static', 'uploads', img_filename)
-                
-                # Calculate image size based on ASCII art
-                lines = ascii_art.split('\n')
-                max_width = max(len(line) for line in lines) if lines else 80
-                height = len(lines)
-                
-                # Create image with dark theme
-                font_size = 12
-                char_width = 7
-                char_height = 14
-                
-                img_width = max_width * char_width + 40
-                img_height = height * char_height + 40
-                
-                # Create image with dark background
-                image = Image.new('RGB', (img_width, img_height), color='#1a1a1a')
-                draw = ImageDraw.Draw(image)
-                
-                # Try to use a monospace font
-                try:
-                    font = ImageFont.truetype("consola.ttf", font_size)
-                except:
-                    try:
-                        font = ImageFont.truetype("cour.ttf", font_size)
-                    except:
-                        font = ImageFont.load_default()
-                
-                # Draw ASCII art in green/cyan color
-                y_offset = 20
-                for line in lines:
-                    draw.text((20, y_offset), line, fill='#00ff88', font=font)
-                    y_offset += char_height
-                
-                # Save the image
-                image.save(img_filepath)
-                
-                return {
-                    'success': True,
-                    'image_path': f'uploads/{img_filename}',
-                    'txt_path': f'uploads/{txt_filename}',
-                    'enhanced_prompt': prompt,
-                    'ascii_art': ascii_art,
-                    'type': 'ascii'
-                }
-            else:
-                return {
-                    'success': False,
-                    'error': 'Failed to generate ASCII art'
-                }
+            # Download and save the image from Pollinations.ai
+            response = requests.get(pollinations_url, timeout=60)
+            response.raise_for_status()
+            
+            with open(img_filepath, 'wb') as handler:
+                handler.write(response.content)
+            
+            return {
+                'success': True,
+                'image_path': f'uploads/{img_filename}',
+                'enhanced_prompt': enhanced_prompt,
+                'type': 'pollinations'
+            }
             
         except Exception as e:
             return {

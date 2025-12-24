@@ -966,7 +966,7 @@ def who_to_follow():
 @app.route('/ai/generate-image', methods=['POST'])
 @login_required
 def generate_image():
-    """Generate ASCII art using Groq AI based on description"""
+    """Generate image using Pollinations.ai (free) based on description"""
     data = request.get_json()
     prompt = data.get('prompt', '')
     
@@ -975,20 +975,19 @@ def generate_image():
     
     try:
         ai = get_ai_service()
-        result = ai.generate_image_with_groq(prompt)
+        result = ai.generate_image_with_pollinations(prompt)
         
         if result.get('success'):
             return jsonify({
                 'success': True,
                 'image_path': result['image_path'],
-                'ascii_art': result['ascii_art'],
                 'type': result['type'],
-                'message': 'ASCII art generated successfully!'
+                'message': 'Image generated successfully!'
             })
         else:
             return jsonify({
                 'success': False,
-                'error': result.get('error', 'Failed to generate ASCII art')
+                'error': result.get('error', 'Failed to generate image')
             }), 500
             
     except Exception as e:

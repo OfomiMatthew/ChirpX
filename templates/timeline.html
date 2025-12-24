@@ -648,82 +648,11 @@ content %}
       aiSection.classList.toggle("hidden");
     });
 
-  // AI Image Generation - Add to media preview
+  // AI Image Generation - Open Modal
   document
     .getElementById("ai-image-btn")
-    .addEventListener("click", async function () {
-      const prompt = window.prompt(
-        "Describe the image you want to generate (AI will create ASCII art):"
-      );
-      if (!prompt) return;
-
-      const originalHtml = this.innerHTML;
-      this.innerHTML =
-        '<i class="fas fa-spinner fa-pulse mr-2"></i>Generating...';
-      this.disabled = true;
-
-      try {
-        const response = await fetch("/ai/generate-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: prompt }),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          // Check if we can add more files
-          if (selectedFiles.length >= 4) {
-            alert(
-              "You already have 4 media files. Remove one to add the AI-generated image."
-            );
-            return;
-          }
-
-          // Fetch the generated image and add it to media preview
-          const imageUrl = `/static/${data.image_path}`;
-
-          try {
-            const imageResponse = await fetch(imageUrl);
-            const imageBlob = await imageResponse.blob();
-            const imageFile = new File(
-              [imageBlob],
-              `ai_generated_${Date.now()}.png`,
-              {
-                type: "image/png",
-              }
-            );
-
-            // Add to selectedFiles array
-            selectedFiles.push(imageFile);
-
-            // Update the file input
-            const dt = new DataTransfer();
-            selectedFiles.forEach((file) => dt.items.add(file));
-            document.getElementById("media-input").files = dt.files;
-
-            // Rebuild preview
-            previewMedia({ files: selectedFiles });
-
-            // Show success message
-            alert("🎨 AI image generated and added to your media!");
-          } catch (fetchError) {
-            alert(
-              "Image generated but failed to add to preview. Error: " +
-                fetchError.message
-            );
-          }
-        } else {
-          alert(
-            data.error || "Failed to generate ASCII art. Please try again."
-          );
-        }
-      } catch (error) {
-        alert("Error: " + error.message);
-      } finally {
-        this.innerHTML = originalHtml;
-        this.disabled = false;
-      }
+    .addEventListener("click", function () {
+      openImageModal();
     });
 
   // AI Hashtag Suggestions
@@ -952,5 +881,198 @@ content %}
 
     document.body.appendChild(modal);
   }
+</script>
+
+<!-- AI Image Generation Modal -->
+<div
+  id="ai-image-modal"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"
+>
+  <div
+    class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all"
+  >
+    <div class="p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3
+          class="text-xl font-bold text-gray-900 dark:text-white flex items-center"
+        >
+          <i class="fas fa-magic mr-2 text-purple-500"></i>
+          Generate AI Image
+        </h3>
+        <button
+          onclick="closeImageModal()"
+          class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <p class="text-gray-600 dark:text-gray-300 mb-4 text-sm">
+        Describe the image you want to create. Be as detailed as possible for
+        best results!
+      </p>
+
+      <textarea
+        id="ai-image-prompt"
+        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+        placeholder="Example: A majestic lion standing on a cliff at sunset, photorealistic, dramatic lighting..."
+        rows="4"
+      ></textarea>
+
+      <div class="flex gap-3 mt-6">
+        <button
+          onclick="closeImageModal()"
+          class="flex-1 px-4 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+        >
+          Cancel
+        </button>
+        <button
+          onclick="generateAIImage()"
+          id="generate-btn"
+          class="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-lg"
+        >
+          <i class="fas fa-wand-magic-sparkles mr-2"></i>Generate
+        </button>
+      </div>
+
+      <div
+        id="generation-status"
+        class="hidden mt-4 p-3 rounded-lg text-sm"
+      ></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openImageModal() {
+    document.getElementById("ai-image-modal").classList.remove("hidden");
+    document.getElementById("ai-image-prompt").focus();
+  }
+
+  function closeImageModal() {
+    document.getElementById("ai-image-modal").classList.add("hidden");
+    document.getElementById("ai-image-prompt").value = "";
+    document.getElementById("generation-status").classList.add("hidden");
+  }
+
+  async function generateAIImage() {
+    const prompt = document.getElementById("ai-image-prompt").value.trim();
+    const statusDiv = document.getElementById("generation-status");
+    const generateBtn = document.getElementById("generate-btn");
+
+    if (!prompt) {
+      statusDiv.className =
+        "mt-4 p-3 rounded-lg text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300";
+      statusDiv.innerHTML =
+        '<i class="fas fa-exclamation-circle mr-2"></i>Please enter a description';
+      statusDiv.classList.remove("hidden");
+      return;
+    }
+
+    // Check if we can add more files
+    if (selectedFiles.length >= 4) {
+      statusDiv.className =
+        "mt-4 p-3 rounded-lg text-sm bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300";
+      statusDiv.innerHTML =
+        '<i class="fas fa-exclamation-triangle mr-2"></i>You already have 4 media files. Remove one first.';
+      statusDiv.classList.remove("hidden");
+      return;
+    }
+
+    // Show generating status
+    generateBtn.disabled = true;
+    generateBtn.innerHTML =
+      '<i class="fas fa-spinner fa-pulse mr-2"></i>Generating...';
+    statusDiv.className =
+      "mt-4 p-3 rounded-lg text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300";
+    statusDiv.innerHTML =
+      '<i class="fas fa-magic mr-2"></i>Creating your image... This may take 10-30 seconds.';
+    statusDiv.classList.remove("hidden");
+
+    try {
+      const response = await fetch("/ai/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        statusDiv.className =
+          "mt-4 p-3 rounded-lg text-sm bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300";
+        statusDiv.innerHTML =
+          '<i class="fas fa-check-circle mr-2"></i>Image generated! Adding to your chirp...';
+
+        // Fetch the generated image and add it to media preview
+        const imageUrl = `/static/${data.image_path}`;
+
+        try {
+          const imageResponse = await fetch(imageUrl);
+          const imageBlob = await imageResponse.blob();
+          const imageFile = new File(
+            [imageBlob],
+            `ai_generated_${Date.now()}.png`,
+            { type: "image/png" }
+          );
+
+          // Add to selectedFiles array
+          selectedFiles.push(imageFile);
+
+          // Update the file input
+          const dt = new DataTransfer();
+          selectedFiles.forEach((file) => dt.items.add(file));
+          document.getElementById("media-input").files = dt.files;
+
+          // Rebuild preview
+          previewMedia({ files: selectedFiles });
+
+          // Close modal after short delay
+          setTimeout(() => {
+            closeImageModal();
+            generateBtn.disabled = false;
+            generateBtn.innerHTML =
+              '<i class="fas fa-wand-magic-sparkles mr-2"></i>Generate';
+          }, 1000);
+        } catch (fetchError) {
+          statusDiv.className =
+            "mt-4 p-3 rounded-lg text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300";
+          statusDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i>Error: ${fetchError.message}`;
+        }
+      } else {
+        statusDiv.className =
+          "mt-4 p-3 rounded-lg text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300";
+        statusDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i>${
+          data.error || "Failed to generate image"
+        }`;
+      }
+    } catch (error) {
+      statusDiv.className =
+        "mt-4 p-3 rounded-lg text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300";
+      statusDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i>Error: ${error.message}`;
+    } finally {
+      if (generateBtn.disabled) {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML =
+          '<i class="fas fa-wand-magic-sparkles mr-2"></i>Generate';
+      }
+    }
+  }
+
+  // Close modal when clicking outside
+  document
+    .getElementById("ai-image-modal")
+    .addEventListener("click", function (e) {
+      if (e.target === this) {
+        closeImageModal();
+      }
+    });
+
+  // Close modal with Escape key
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      closeImageModal();
+    }
+  });
 </script>
 {% endblock %}
